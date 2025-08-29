@@ -1,0 +1,3113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المستودعات - بي سانوس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- مكتبات التحميل الجديدة -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- نهاية مكتبات التحميل الجديدة -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #2a9221 0%, #ffffff 120%);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+        
+        .inventory-card {
+            transition: all 0.4s ease;
+            border-right: 4px solid #10b981;
+        }
+        
+        .inventory-card:hover {
+            border-right-color: #ef4444;
+            transform: scale(1.03);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .withdrawal-animation {
+            animation: slideInRight 0.6s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .notification {
+            animation: notificationSlide 0.4s ease-out;
+        }
+        
+        @keyframes notificationSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .logo-float {
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+
+        .search-highlight {
+            background: linear-gradient(120deg, #fef3c7, #fde047);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #10b981 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+        }
+
+        .brand-green {
+            color: #10b981;
+        }
+
+        .brand-bg-green {
+            background-color: #10b981;
+        }
+
+        .brand-border-green {
+            border-color: #10b981;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                background: white !important;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .invoice-container {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 10px; /* Smaller font for printing */
+            }
+
+            .invoice-container h1, .invoice-container h2, .invoice-container h3 {
+                font-size: 1.2em !important;
+            }
+
+            .invoice-container p, .invoice-container span, .invoice-container strong, .invoice-container li {
+                font-size: 0.8em !important;
+            }
+
+            .invoice-container table {
+                font-size: 0.7em !important;
+            }
+
+            .invoice-container table th, .invoice-container table td {
+                padding: 5px !important;
+            }
+
+            .print-header {
+                border-bottom: 3px solid #10b981 !important;
+                padding-bottom: 10px !important;
+            }
+
+            /* Force content to fit on one page if possible */
+            html, body {
+                height: auto;
+                overflow: hidden;
+            }
+            .invoice-container {
+                page-break-after: avoid;
+                page-break-before: avoid;
+                page-break-inside: avoid;
+            }
+
+            /* New styles for printing recent withdrawals */
+            .recent-withdrawals-print-area {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 10px;
+            }
+            .recent-withdrawals-print-area h3 {
+                font-size: 1.2em !important;
+            }
+            .recent-withdrawals-print-area p, .recent-withdrawals-print-area span, .recent-withdrawals-print-area strong {
+                font-size: 0.8em !important;
+            }
+            .recent-withdrawals-print-area .withdrawal-date-header {
+                font-size: 1em !important;
+                margin-top: 15px !important;
+                margin-bottom: 5px !important;
+                padding-bottom: 5px !important;
+                border-bottom: 1px dashed #ccc !important;
+            }
+            .recent-withdrawals-print-area .withdrawal-item {
+                page-break-inside: avoid;
+                margin-bottom: 5px !important;
+                padding: 5px !important;
+                border: 1px solid #eee !important;
+            }
+        }
+
+        .pulse-green {
+            animation: pulseGreen 2s infinite;
+        }
+
+        @keyframes pulseGreen {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Dropdown for Invoice Button */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 0.75rem; /* rounded-xl */
+            right: 0; /* Align to the right */
+            top: 100%; /* Position below the button */
+            margin-top: 0.5rem; /* Space below button */
+            overflow: hidden; /* For rounded corners */
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: right; /* Align text to right for RTL */
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-6">
+        <div class="glass-effect rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="bg-white rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center logo-float">
+                    <img src="logo be sanus 24-02 (1).png" alt="شعار شركة بي سانوس مع امرأة أنيقة ذات شعر مجعد تحمل شريط أخضر يحمل النص العربي بي سانوس والنص اللاتيني be sonus باللون الأخضر الفاتح" class="w-16 h-16" />
+                </div>
+                <h1 class="text-4xl font-bold text-white mb-3">نظام إدارة المستودعات</h1>
+                <h2 class="text-2xl font-semibold text-green-200 mb-2">بي سانوس</h2>
+                <p class="text-green-100">تسجيل دخول الموظفين</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-white font-medium mb-3">
+                        <i class="fas fa-user ml-2"></i>
+                        اسم المستخدم
+                    </label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-green-200 border border-white/30 focus:outline-none focus:ring-3 focus:ring-white/50 transition duration-300" 
+                        placeholder="أدخل اسم المستخدم"
+                        required
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-white font-medium mb-3">
+                        <i class="fas fa-lock ml-2"></i>
+                        كلمة المرور
+                    </label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-green-200 border border-white/30 focus:outline-none focus:ring-3 focus:ring-white/50 transition duration-300" 
+                        placeholder="أدخل كلمة المرور"
+                        required
+                    >
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full bg-white text-green-700 p-4 rounded-xl font-bold hover:bg-green-50 transition duration-300 transform hover:scale-105 pulse-green"
+                >
+                    <i class="fas fa-sign-in-alt ml-2"></i>
+                    تسجيل الدخول
+                </button>
+            </form>
+            
+            <div class="mt-8 bg-white/10 rounded-xl p-4 text-center">
+                <p class="text-green-100 text-sm font-medium mb-2">خاص في بي سانوس :</p>
+                <div class="space-y-1 text-xs text-green-200">
+                    <p><strong>مرحبا:</strong> بكم</p>
+                    <p><strong>موقع خاص بموظفين بي سانوس</strong></p>
+                    <p><strong> نرجو منكم ادخل اسم المستخدم وكلمة السر </strong> </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden min-h-screen bg-gray-50">
+        <!-- Header -->
+        <header class="bg-white shadow-xl border-b-4 brand-border-green">
+            <div class="container mx-auto px-6 py-6">
+                <!-- تعديل هنا: استخدام flex-col على الشاشات الصغيرة و flex-row على الشاشات المتوسطة وما فوق -->
+                <div class="flex flex-col md:flex-row justify-between items-center md:items-start space-y-4 md:space-y-0">
+                    <div class="flex items-center space-x-6 space-x-reverse">
+                        <div class="brand-bg-green rounded-full w-16 h-16 flex items-center justify-center">
+                            <img src="log_be_sanus 254.png" alt="شعار بي سانوس مصغر للهيدر باللون الأبيض على خلفية خضراء" class="w-10 h-10" />
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">نظام إدارة المستودعات</h1>
+                            <div class="flex items-center space-x-3 space-x-reverse">
+                                <span class="text-2xl font-bold brand-green">بي سانوس</span>
+                                <span class="text-sm text-gray-500">Be Sonus</span>
+                            </div>
+                            <p class="text-gray-600 text-sm">مرحباً بك، <span id="employeeName" class="font-semibold brand-green">المدير</span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- تعديل هنا: استخدام flex-wrap لتلتف الأزرار على الشاشات الصغيرة -->
+                    <div class="flex flex-wrap justify-center md:justify-end items-center space-x-4 space-x-reverse mt-4 md:mt-0">
+                        <!-- Dropdown for Invoice Button -->
+                        <div class="dropdown mb-2 md:mb-0"> <!-- إضافة هامش سفلي على الهواتف -->
+                            <button 
+                                onclick="generateInvoice()" 
+                                class="brand-bg-green hover:bg-green-700 text-white px-6 py-3 rounded-xl transition duration-300 transform hover:scale-105"
+                            >
+                                <i class="fas fa-file-invoice ml-2"></i>
+                                فاتورة السحوبات
+                            </button>
+                            <div class="dropdown-content">
+                                <a href="#" onclick="generateInvoice(); return false;">
+                                    <i class="fas fa-eye ml-2"></i> عرض الفاتورة
+                                </a>
+                                <a href="#" onclick="downloadInvoicePDF(); return false;">
+                                    <i class="fas fa-file-pdf ml-2"></i> تحميل PDF
+                                </a>
+                                <a href="#" onclick="downloadInvoiceExcel(); return false;">
+                                    <i class="fas fa-file-excel ml-2"></i> تحميل Excel
+                                </a>
+                                <a href="#" onclick="printInvoice(); return false;">
+                                    <i class="fas fa-print ml-2"></i> طباعة
+                                </a>
+                            </div>
+                        </div>
+                        <!-- End Dropdown -->
+
+                        <!-- Button for All Withdrawals (Admin/Manager Only) -->
+                        <button 
+                            id="allWithdrawalsBtn"
+                            onclick="showAllWithdrawalsModal()" 
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl transition duration-300 transform hover:scale-105 hidden mb-2 md:mb-0"
+                        >
+                            <i class="fas fa-list-alt ml-2"></i>
+                            سجل السحوبات الكامل
+                        </button>
+
+                        <!-- Button for User Management (Admin Only) -->
+                        <button 
+                            id="manageUsersBtn"
+                            onclick="showUserManagementModal()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition duration-300 transform hover:scale-105 hidden mb-2 md:mb-0"
+                        >
+                            <i class="fas fa-users-cog ml-2"></i>
+                            إدارة المستخدمين
+                        </button>
+
+                        <!-- Button for Audit Log (Admin Only) -->
+                        <button 
+                            id="auditLogBtn"
+                            onclick="showAuditLogModal()" 
+                            class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl transition duration-300 transform hover:scale-105 hidden mb-2 md:mb-0"
+                        >
+                            <i class="fas fa-clipboard-list ml-2"></i>
+                            سجل الأنشطة
+                        </button>
+
+                        <div class="text-left bg-gray-50 p-3 rounded-xl mb-2 md:mb-0">
+                            <p class="text-sm text-gray-500">التاريخ</p>
+                            <p id="currentDate" class="font-semibold text-gray-800"></p>
+                        </div>
+                        <button 
+                            onclick="logout()" 
+                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl transition duration-300"
+                        >
+                            <i class="fas fa-sign-out-alt ml-1"></i>
+                            خروج
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="container mx-auto px-6 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+                <div class="stats-card rounded-2xl shadow-xl p-8 card-hover transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="brand-bg-green rounded-full w-16 h-16 flex items-center justify-center ml-6">
+                            <i class="fas fa-boxes text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">إجمالي المنتجات</p>
+                            <p id="totalProducts" class="text-3xl font-bold text-gray-800">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card rounded-2xl shadow-xl p-8 card-hover transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-blue-500 rounded-full w-16 h-16 flex items-center justify-center ml-6">
+                            <i class="fas fa-arrow-down text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">عمليات السحب اليوم</p>
+                            <p id="todayWithdrawals" class="text-3xl font-bold text-gray-800">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card rounded-2xl shadow-xl p-8 card-hover transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-yellow-500 rounded-full w-16 h-16 flex items-center justify-center ml-6">
+                            <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">منتجات منخفضة</p>
+                            <p id="lowStockItems" class="text-3xl font-bold text-gray-800">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card rounded-2xl shadow-xl p-8 card-hover transition-all duration-300">
+                    <div class="flex items-center">
+                        <div class="bg-purple-500 rounded-full w-16 h-16 flex items-center justify-center ml-6">
+                            <i class="fas fa-dollar-sign text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">القيمة الإجمالية</p>
+                            <p id="totalValue" class="text-3xl font-bold">0 ر.س</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Low Stock Items Section -->
+            <div id="lowStockSection" class="bg-white rounded-2xl shadow-xl p-8 mb-10 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-exclamation-circle ml-3 text-red-500"></i>
+                    المنتجات منخفضة المخزون
+                </h2>
+                <div id="lowStockList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Low stock items will be populated here -->
+                </div>
+                <div id="noLowStock" class="text-center py-8 text-gray-500 hidden">
+                    <i class="fas fa-check-circle text-4xl mb-4 text-green-500"></i>
+                    <p>لا توجد منتجات منخفضة المخزون حالياً. كل شيء على ما يرام!</p>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <!-- Inventory Management -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-xl p-8">
+                        <div class="flex justify-between items-center mb-8">
+                            <h2 class="text-2xl font-bold text-gray-800">
+                                <i class="fas fa-clipboard-list ml-3 brand-green"></i>
+                                إدارة المخزون
+                            </h2>
+                            <button 
+                                id="addProductBtn"
+                                onclick="showAddProductModal()" 
+                                class="brand-bg-green hover:bg-green-700 text-white px-6 py-3 rounded-xl transition duration-300 transform hover:scale-105"
+                            >
+                                <i class="fas fa-plus ml-2"></i>
+                                إضافة منتج
+                            </button>
+                        </div>
+                        
+                        <!-- Enhanced Search -->
+                        <div class="mb-6">
+                            <div class="relative">
+                                <div class="absolute inset-y-0 right-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    id="searchInput" 
+                                    placeholder="البحث في المنتجات بالاسم، الفئة، أو السعر..."
+                                    class="w-full pr-12 p-4 border-2 border-gray-20-0 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500 transition duration-300"
+                                    oninput="searchProducts()"
+                                >
+                                <button 
+                                    id="clearSearchBtn"
+                                    onclick="clearSearch()" 
+                                    class="absolute inset-y-0 left-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                                    title="مسح البحث"
+                                >
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            </div>
+                            <div id="searchSuggestions" class="mt-2 bg-white rounded-lg shadow-lg hidden">
+                                <!-- Search suggestions will appear here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="flex flex-wrap gap-3 mb-6">
+                            <button onclick="filterByCategory('all', this)" class="filter-btn active px-4 py-2 rounded-lg bg-green-100 text-green-700 font-medium transition duration-300">
+                                الكل
+                            </button>
+                            <button onclick="filterByCategory('electronics', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                معلابات
+                            </button>
+                            <button onclick="filterByCategory('clothing', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                منتجات جافة
+                            </button>
+                            <button onclick="filterByCategory('food', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                اللحوم
+                            </button>
+                            <button onclick="filterByCategory('tools', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                أدوات النظافة
+                            </button>
+                            <button onclick="filterByCategory('office', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                مكتبية
+                            </button>
+                             <button onclick="filterByCategory('ready', this)" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium transition duration-300">
+                                منتجات جاهزة للفرع
+                            </button>
+                        </div>
+                        
+                        <div id="inventoryList" class="space-y-4 max-h-96 overflow-y-auto">
+                            <!-- Inventory items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Withdrawal Panel -->
+                <div>
+                    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">
+                            <i class="fas fa-hand-paper ml-3 text-blue-600"></i>
+                            سحب المنتجات
+                        </h3>
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">اختر المنتج</label>
+                                <select id="productSelect" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">اختر المنتج</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">الكمية</label>
+                                <input 
+                                    type="number" 
+                                    id="withdrawQuantity" 
+                                    placeholder="الكمية المطلوب سحبها"
+                                    class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                                    min="1"
+                                >
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-medium mb-2">سبب السحب</label>
+                                <textarea 
+                                    id="withdrawReason" 
+                                    placeholder="أدخل سبب السحب (اختياري)"
+                                    class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 h-24 resize-none"
+                                ></textarea>
+                            </div>
+                            
+                            <button 
+                                onclick="showWithdrawalConfirmationModal()" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold transition duration-300 transform hover:scale-105"
+                            >
+                                <i class="fas fa-download ml-2"></i>
+                                تأكيد السحب
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Withdrawals -->
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-history ml-3 text-purple-600"></i>
+                                سجل السحوبات الكامل
+                            </h3>
+                            <div class="flex space-x-2 space-x-reverse no-print">
+                                <button 
+                                    onclick="downloadRecentWithdrawalsPDF()" 
+                                    class="bg-red-500 hover:bg-red-600 text-white p-3 rounded-xl transition duration-200"
+                                    title="تحميل PDF"
+                                >
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                                <button 
+                                    onclick="printRecentWithdrawals()" 
+                                    class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-xl transition duration-200"
+                                    title="طباعة"
+                                >
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <!-- Removed clearWithdrawals button from here as it's now for all withdrawals -->
+                            </div>
+                        </div>
+                        <div id="recentWithdrawals" class="space-y-4 max-h-80 overflow-y-auto recent-withdrawals-print-area">
+                            <!-- Recent withdrawals will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center">
+                    <div class="brand-bg-green rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                        <i class="fas fa-plus text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">إضافة منتج جديد</h3>
+                </div>
+                <button onclick="closeAddProductModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="addProductForm" class="space-y-6">
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">اسم المنتج</label>
+                        <input 
+                            type="text" 
+                            id="productName" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                            placeholder="أدخل اسم المنتج"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">الكمية</label>
+                            <input 
+                                type="number" 
+                                id="productQuantity" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                                placeholder="0"
+                                min="0"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">السعر (ر.س)</label>
+                            <input 
+                                type="number" 
+                                id="productPrice" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">الفئة</label>
+                        <select 
+                            id="productCategory" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                            required
+                        >
+                            <option value="">اختر الفئة</option>
+                            <option value="electronics">معلابات</option>
+                            <option value="clothing">منتجات جافة</option>
+                            <option value="food">اللحوم</option>
+                            <option value="tools">أدوات النظافة</option>
+                            <option value="office">مكتبية</option>
+                            <option value="ready">منتجات جاهزة للفروع</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">الحد الأدنى للمخزون</label>
+                        <input 
+                            type="number" 
+                            id="productMinStock" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                            placeholder="0"
+                            min="0"
+                            required
+                        >
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4 space-x-reverse pt-6">
+                    <button 
+                        type="submit" 
+                        class="flex-1 brand-bg-green hover:bg-green-700 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-check ml-2"></i>
+                        إضافة المنتج
+                    </button>
+                    <button 
+                        type="button" 
+                        onclick="closeAddProductModal()" 
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-times ml-2"></i>
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center">
+                    <div class="bg-blue-500 rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                        <i class="fas fa-edit text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">تعديل المنتج</h3>
+                </div>
+                <button onclick="closeEditProductModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="editProductForm" class="space-y-6">
+                <input type="hidden" id="editProductId">
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">اسم المنتج</label>
+                        <input 
+                            type="text" 
+                            id="editProductName" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="أدخل اسم المنتج"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">الكمية</label>
+                            <input 
+                                type="number" 
+                                id="editProductQuantity" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="0"
+                                min="0"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">السعر (ر.س)</label>
+                            <input 
+                                type="number" 
+                                id="editProductPrice" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                required
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">الفئة</label>
+                        <select 
+                            id="editProductCategory" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                            <option value="">اختر الفئة</option>
+                            <option value="electronics">معلابات</option>
+                            <option value="clothing">منتجات جافة</option>
+                            <option value="food">اللحوم</option>
+                            <option value="tools">أدوات النظافة</option>
+                            <option value="office">مكتبية</option>
+                            <option value="ready">منتجات جاهزة للفروع</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">الحد الأدنى للمخزون</label>
+                        <input 
+                            type="number" 
+                            id="editProductMinStock" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                            min="0"
+                            required
+                        >
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4 space-x-reverse pt-6">
+                    <button 
+                        type="submit" 
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-save ml-2"></i>
+                        حفظ التعديلات
+                    </button>
+                    <button 
+                        type="button" 
+                        onclick="closeEditProductModal()" 
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-times ml-2"></i>
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal (General Purpose) -->
+    <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+            <div class="flex justify-center mb-6">
+                <i id="confirmationIcon" class="text-5xl text-gray-500"></i>
+            </div>
+            <h3 id="confirmationTitle" class="text-2xl font-bold text-gray-800 mb-4"></h3>
+            <p id="confirmationMessage" class="text-gray-600 mb-8"></p>
+            <div class="flex space-x-4 space-x-reverse justify-center">
+                <button 
+                    id="confirmActionButton" 
+                    class="bg-red-600 hover:bg-red-700 text-white p-4 rounded-xl font-bold transition duration-300 flex-1"
+                >
+                    <i class="fas fa-check ml-2"></i>
+                    تأكيد
+                </button>
+                <button 
+                    onclick="hideConfirmationModal()" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-xl font-bold transition duration-300 flex-1"
+                >
+                    <i class="fas fa-times ml-2"></i>
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Confirmation Modal -->
+    <div id="withdrawalConfirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">تأكيد عملية السحب</h3>
+                <button onclick="hideWithdrawalConfirmationModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-gray-700 mb-8">
+                <p><strong>المنتج:</strong> <span id="confirmWithdrawProductName" class="font-semibold brand-green"></span></p>
+                <p><strong>الكمية:</strong> <span id="confirmWithdrawQuantity" class="font-semibold text-blue-600"></span></p>
+                <p><strong>السعر للوحدة:</strong> <span id="confirmWithdrawUnitPrice" class="font-semibold"></span> ر.س</p>
+                <p><strong>القيمة الإجمالية:</strong> <span id="confirmWithdrawTotalValue" class="font-bold text-xl brand-green"></span> ر.س</p>
+                <p><strong>السبب:</strong> <span id="confirmWithdrawReason" class="font-semibold"></span></p>
+            </div>
+            <div class="flex space-x-4 space-x-reverse justify-center">
+                <button 
+                    onclick="confirmWithdrawal()" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold transition duration-300"
+                >
+                    <i class="fas fa-check ml-2"></i>
+                    تأكيد السحب
+                </button>
+                <button 
+                    onclick="hideWithdrawalConfirmationModal()" 
+                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-xl font-bold transition duration-300"
+                >
+                    <i class="fas fa-times ml-2"></i>
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div id="invoiceModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-screen overflow-y-auto">
+            <div class="invoice-container p-10">
+                <!-- Invoice Header (no-print) -->
+                <div class="bg-gradient-to-r from-green-600 to-green-800 text-white p-8 rounded-xl mb-8 no-print">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <div class="bg-white rounded-full w-16 h-16 flex items-center justify-center ml-4">
+                                <img src="log_be_sanus 254.png" alt="شعار بي سانوس للفاتورة باللون الأخضر على خلفية بيضاء" class="w-10 h-10" />
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-bold mb-2">فاتورة سحوبات الموظف</h2>
+                                <p class="text-green-100 text-lg">تقرير شامل لجميع عمليات السحب</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-4 space-x-reverse">
+                            <button onclick="downloadInvoicePDF()" class="bg-white text-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-50 transition duration-300">
+                                <i class="fas fa-file-pdf ml-2"></i>
+                                تحميل PDF
+                            </button>
+                            <button onclick="downloadInvoiceExcel()" class="bg-white text-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-50 transition duration-300">
+                                <i class="fas fa-file-excel ml-2"></i>
+                                تحميل Excel
+                            </button>
+                            <button onclick="printInvoice()" class="bg-white text-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-50 transition duration-300">
+                                <i class="fas fa-print ml-2"></i>
+                                طباعة
+                            </button>
+                            <button onclick="closeInvoiceModal()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl transition duration-300">
+                                <i class="fas fa-times ml-2"></i>
+                                إغلاق
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Content -->
+                <div id="invoiceContent" class="bg-white">
+                    <!-- Company Header -->
+                    <div class="text-center mb-10 print-header border-b-4 brand-border-green pb-8">
+                        <div class="flex items-center justify-center mb-6">
+                            <img src="logo be sanus 24-02 (1).png" alt="شعار شركة بي سانوس الرسمي للفاتورة مع تفاصيل واضحة باللون الأخضر والنص العربي واللاتيني" class="ml-6" />
+                            <div class="text-right">
+                                <h1 class="text-4xl font-bold brand-green mb-2">بي سانوس</h1>
+                                <h2 class="text-2xl font-semibold text-gray-700 mb-2">Be Sonus</h2>
+                                <p class="text-lg text-gray-600">نظام إدارة المستودعات المتطور</p>
+                                <p class="text-sm text-gray-500 mt-2">جدة - المملكة العربية السعودية</p>
+                                <p class="text-sm text-gray-500">هاتف: 0507001669 | البريد: info@besonus.com</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                                <i class="fas fa-user ml-2 text-blue-600"></i>
+                                بيانات الموظف
+                            </h3>
+                            <div class="bg-gray-50 p-6 rounded-xl border-r-4 border-blue-500">
+                                <p class="mb-2"><strong>اسم الموظف:</strong> <span id="invoiceEmployeeName" class="brand-green font-bold"></span></p>
+                                <p class="mb-2"><strong>تاريخ الفاتورة:</strong> <span id="invoiceDate"></span></p>
+                                <p class="mb-2"><strong>رقم الفاتورة:</strong> <span id="invoiceNumber" class="font-mono font-bold"></span></p>
+                                <p class="mb-2"><strong>إجمالي العمليات:</strong> <span id="totalOperations" class="font-bold text-blue-600"></span></p>
+                                <p><strong>فترة التقرير:</strong> <span id="reportPeriod"></span></p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                                <i class="fas fa-chart-bar ml-2 brand-green"></i>
+                                ملخص الفاتورة
+                            </h3>
+                            <div class="bg-green-50 p-6 rounded-xl border-r-4 border-green-500">
+                                <p class="mb-2"><strong>إجمالي القيمة:</strong> <span id="invoiceTotalValue" class="brand-green font-bold text-xl"></span></p>
+                                <p class="mb-2"><strong>إجمالي الكميات:</strong> <span id="invoiceTotalQuantity" class="font-bold"></span></p>
+                                <p class="mb-2"><strong>عدد المنتجات المختلفة:</strong> <span id="uniqueProducts" class="font-bold"></span></p>
+                                <p class="mb-2"><strong>أكبر قيمة سحب:</strong> <span id="maxWithdrawal" class="font-bold text-purple-600"></span></p>
+                                <p><strong>متوسط قيمة السحب:</strong> <span id="avgWithdrawal" class="font-bold text-orange-600"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Withdrawals Table -->
+                    <div class="mb-10">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">
+                            <i class="fas fa-table ml-2 text-purple-600"></i>
+                            تفاصيل عمليات السحب
+                        </h3>
+                        <div class="overflow-x-auto rounded-xl border border-gray-200">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="bg-gradient-to-r from-gray-100 to-gray-200">
+                                        <th class="border border-gray-300 p-4 text-center font-bold">#</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">اسم المنتج</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">الكمية</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">السعر الوحدة</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">القيمة الإجمالية</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">السبب</th>
+                                        <th class="border border-gray-300 p-4 text-center font-bold">التاريخ والوقت</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoiceTableBody">
+                                    <!-- Table rows will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Summary -->
+                    <div class="bg-gradient-to-r from-green-50 to-blue-50 p-8 rounded-xl border-t-4 brand-border-green mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-4 text-lg">ملاحظات مهمة:</h4>
+                                <ul class="text-sm text-gray-600 space-y-2">
+                                    <li class="flex items-center"><i class="fas fa-check-circle brand-green ml-2"></i>جميع المبالغ بالريال السعودي</li>
+                                    <li class="flex items-center"><i class="fas fa-check-circle brand-green ml-2"></i>تم التحقق من جميع العمليات</li>
+                                    <li class="flex items-center"><i class="fas fa-check-circle brand-green ml-2"></i>الفاتورة صالحة لأغراض المحاسبة</li>
+                                    <li class="flex items-center"><i class="fas fa-check-circle brand-green ml-2"></i>تم توليد الفاتورة تلقائياً</li>
+                                </ul>
+                            </div>
+                            <div class="text-center">
+                                <div class="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-2xl">
+                                    <p class="text-sm mb-2">إجمالي قيمة السحوبات</p>
+                                    <p id="finalTotal" class="text-3xl font-bold"></p>
+                                    <p class="text-xs mt-2 opacity-90">شامل جميع العمليات</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signatures -->
+                    <div class="grid grid-cols-2 gap-12 mt-12 pt-8 border-t-2 border-gray-200">
+                        <div class="text-center">
+                            <div class="border-b-2 border-gray-400 mb-3 h-20"></div>
+                            <p class="font-bold text-lg">توقيع موظف المطبخ</p>
+                            <p class="text-sm text-gray-600 mt-1" id="signatureEmployee"></p>
+                            <p class="text-xs text-gray-500 mt-2">التوقيع: _______________</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="border-b-2 border-gray-400 mb-3 h-20"></div>
+                            <p class="font-bold text-lg">توقيع مدير المطبخ</p>
+                            <p class="text-sm text-gray-600 mt-1">مسؤؤل المطبخ</p>
+                            <p class="text-xs text-gray-500 mt-2">التوقيع: _______________</p>
+                        </div>
+                    </div>
+
+                    <!-- Company Footer -->
+                    <div class="text-center mt-10 pt-6 border-t border-gray-200">
+                        <div class="flex items-center justify-center mb-3">
+                            <img src="logo be sanus 24-02 (1).png" alt="شعار بي سانوس صغير للفوتر" class="ml-2" />
+                            <span class="brand-green font-bold">بي سانوس - Be Sonus</span>
+                        </div>
+                        <p class="text-xs text-gray-500">هذه الفاتورة تم توليدها تلقائياً من نظام إدارة المستودعات لدى بي سانوس</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Withdrawals Modal (New) -->
+    <div id="allWithdrawalsModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div class="flex items-center">
+                        <div class="bg-purple-600 rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                            <i class="fas fa-list-alt text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800">سجل السحوبات الكامل</h3>
+                    </div>
+                    <button onclick="closeAllWithdrawalsModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <input 
+                        type="text" 
+                        id="allWithdrawalsSearchInput" 
+                        placeholder="البحث في السجل (اسم المنتج، الموظف، السبب...)"
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-purple-500 focus:border-purple-500"
+                        oninput="filterAllWithdrawals()"
+                    >
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-gray-100 to-gray-200">
+                                <th class="border border-gray-300 p-4 text-center font-bold">#</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">اسم المنتج</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">الكمية</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">السعر الوحدة</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">القيمة الإجمالية</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">السبب</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">الموظف</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">التاريخ والوقت</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allWithdrawalsTableBody">
+                            <!-- All withdrawal records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal (New) -->
+    <div id="userManagementModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center">
+                    <div class="bg-blue-600 rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                        <i class="fas fa-users-cog text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">إدارة المستخدمين</h3>
+                </div>
+                <button onclick="closeUserManagementModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+
+            <button onclick="showAddUserModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold mb-4">
+                <i class="fas fa-user-plus ml-2"></i> إضافة مستخدم جديد
+            </button>
+
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-gray-100 to-gray-200">
+                            <th class="border border-gray-300 p-4 text-center font-bold">اسم المستخدم</th>
+                            <th class="border border-gray-300 p-4 text-center font-bold">الاسم الكامل</th>
+                            <th class="border border-gray-300 p-4 text-center font-bold">الدور الحالي</th>
+                            <th class="border border-gray-300 p-4 text-center font-bold">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userListTableBody">
+                        <!-- User list will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal (New) -->
+    <div id="addUserModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-8">
+                <div class="flex items-center">
+                    <div class="bg-green-600 rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                        <i class="fas fa-user-plus text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800">إضافة مستخدم جديد</h3>
+                </div>
+                <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="addUserForm" class="space-y-6">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">اسم المستخدم (للتسجيل)</label>
+                    <input 
+                        type="text" 
+                        id="newUsername" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                        placeholder="أدخل اسم المستخدم"
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">الاسم الكامل</label>
+                    <input 
+                        type="text" 
+                        id="newFullName" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                        placeholder="أدخل الاسم الكامل للموظف"
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">كلمة المرور</label>
+                    <input 
+                        type="password" 
+                        id="newPassword" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                        placeholder="أدخل كلمة المرور"
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">تأكيد كلمة المرور</label>
+                    <input 
+                        type="password" 
+                        id="confirmNewPassword" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                        placeholder="أعد إدخال كلمة المرور"
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">الدور</label>
+                    <select 
+                        id="newUserRole" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-green-500 focus:border-green-500"
+                        required
+                    >
+                        <option value="">اختر الدور</option>
+                        <option value="admin">المدير العام</option>
+                        <option value="manager">مدير المستودع</option>
+                        <option value="employee">موظف</option>
+                    </select>
+                </div>
+                
+                <div class="flex space-x-4 space-x-reverse pt-6">
+                    <button 
+                        type="submit" 
+                        class="flex-1 brand-bg-green hover:bg-green-700 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-check ml-2"></i>
+                        إضافة المستخدم
+                    </button>
+                    <button 
+                        type="button" 
+                        onclick="closeAddUserModal()" 
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white p-4 rounded-xl font-bold transition duration-300"
+                    >
+                        <i class="fas fa-times ml-2"></i>
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Audit Log Modal (New) -->
+    <div id="auditLogModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-6 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div class="flex items-center">
+                        <div class="bg-gray-600 rounded-full w-12 h-12 flex items-center justify-center ml-3">
+                            <i class="fas fa-clipboard-list text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800">سجل الأنشطة</h3>
+                    </div>
+                    <button onclick="closeAuditLogModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <input 
+                        type="text" 
+                        id="auditLogSearchInput" 
+                        placeholder="البحث في سجل الأنشطة (النوع، التفاصيل، الموظف...)"
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-3 focus:ring-gray-500 focus:border-gray-500"
+                        oninput="filterAuditLog()"
+                    >
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-gray-100 to-gray-200">
+                                <th class="border border-gray-300 p-4 text-center font-bold">#</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">التاريخ والوقت</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">الموظف</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">نوع النشاط</th>
+                                <th class="border border-gray-300 p-4 text-center font-bold">التفاصيل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogTableBody">
+                            <!-- Audit log records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-6 left-6 bg-green-500 text-white px-8 py-5 rounded-xl shadow-2xl z-50 notification">
+        <div class="flex items-center">
+            <i id="notificationIcon" class="fas fa-check-circle ml-3 text-xl"></i>
+            <span id="notificationText" class="font-medium"></span>
+        </div>
+    </div>
+
+    <!-- Background Images -->
+    <div class="hidden">
+        <img src="https://placehold.co/1200x600" alt="Modern warehouse interior with organized shelving systems, professional lighting, and green color accents matching Be Sonus brand identity" />
+        <img src="https://placehold.co/800x400" alt="Professional warehouse management dashboard showing inventory tracking, employee access controls, and modern Arabic interface design" />
+    </div>
+
+    <script>
+        // Sample data with enhanced products
+        let inventory = [
+            { id: 1, name: "لابتوب ديل XPS", quantity: 25, price: 2500, category: "electronics", minStock: 5, description: "لابتوب متطور للأعمال" },
+            { id: 2, name: "كرسي مكتب أرجونومي", quantity: 15, price: 450, category: "office", minStock: 3, description: "كرسي مريح للمكتب" },
+            { id: 3, name: "قميص قطني كلاسيكي", quantity: 50, price: 85, category: "clothing", minStock: 10, description: "قميص عالي الجودة" },
+            { id: 4, name: "مفك براغي احترافي", quantity: 100, price: 25, category: "tools", minStock: 20, description: "مفك متعدد الأحجام" },
+            { id: 5, name: "زيت طبخ زيتون", quantity: 30, price: 15, category: "food", minStock: 5, description: "زيت زيتون طبيعي" },
+            { id: 6, name: "هاتف ذكي سامسونج", quantity: 12, price: 1800, category: "electronics", minStock: 2, description: "هاتف ذكي حديث" },
+            { id: 7, name: "طابعة ليزر", quantity: 8, price: 650, category: "office", minStock: 2, description: "طابعة سريعة وموفرة" }
+        ];
+
+        let withdrawalHistory = []; // سجل السحوبات الخاص بالموظف الحالي (للعرض والفاتورة)
+        let allWithdrawalHistory = []; // سجل السحوبات العام (للمدير)
+        let auditLog = []; // سجل الأنشطة
+
+        let currentEmployee = '';
+        let currentEmployeeId = '';
+        let currentEmployeeRole = ''; 
+        let currentEmployeePermissions = {}; // New variable for permissions
+
+        let currentFilter = 'all';
+
+        // Define user roles and their permissions
+        const ROLES = {
+            'admin': {
+                name: 'المدير العام',
+                canAddProduct: true,
+                canEditProduct: true,
+                canDeleteProduct: true,
+                canViewAllWithdrawals: true,
+                canDeleteWithdrawal: true, // Admin can delete any withdrawal
+                canManageUsers: true, // Only admin can manage users
+                canViewAuditLog: true // Only admin can view audit log
+            },
+            'manager': {
+                name: 'مدير المستودع',
+                canAddProduct: true,
+                canEditProduct: true,
+                canDeleteProduct: true,
+                canViewAllWithdrawals: true,
+                canDeleteWithdrawal: true, // Manager can delete any withdrawal
+                canManageUsers: false,
+                canViewAuditLog: true // Manager can view audit log
+            },
+            'employee': {
+                name: 'موظف',
+                canAddProduct: false,
+                canEditProduct: false,
+                canDeleteProduct: false,
+                canViewAllWithdrawals: false,
+                canDeleteWithdrawal: false, // Employee cannot delete withdrawals
+                canManageUsers: false,
+                canViewAuditLog: false
+            }
+        };
+
+        // User data structure (now includes role)
+        let users = {
+            'عامر الجدعاني': { password: '123123', name: 'المدير العام', role: 'admin' }, // Changed to admin
+            'برهان': { password: '123123', name: 'برهان مساعد الشيف', role: 'employee' },
+            'عبدالرحمن عمر': { password: '1212', name: 'عبدالرحمن مسؤول المستودع', role: 'manager' },
+            'امل الجدعاني': { password: '1212', name: 'امل مديرة العمليات', role: 'admin' },
+            'عبدالرحمن قاسم': { password: '1212', name: 'عبدالرحمن مسؤول الفروع', role: 'employee' },
+            'محمد عبدالله': { password: '1313', name: 'مدير فرع', role: 'employee' },
+            'عمر العمودي': { password: '1414', name: 'مدير فرع', role: 'employee' },
+            'خالد جار النبي': { password: '1515', name: 'مساعد مسؤؤل المستودع', role: 'employee' },
+            'راشد ': { password: '1616', name: 'مدير فرع', role: 'employee' },
+            'عبدالرحمن ربيحان': { password: '1717', name: 'نائب مدير فرع', role: 'employee' },
+            'عبدالرحمن ابوبكر': { password: '1818', name: 'مدير اللوجستيك', role: 'employee' },
+            'وائل زغلول': { password: '1919', name: 'شيف المطبخ', role: 'employee' },
+            'ريان الحربي ': { password: '2020', name: 'مدير التسويق', role: 'employee' },
+            'عواله': { password: '2121', name: 'مسؤول الحلى', role: 'employee' },
+            'user0': { password: '2222', name: 'مستخدم تجريبي 1', role: 'employee' },
+            'user1': { password: '2323', name: 'مستخدم تجريبي 2', role: 'employee' },
+            'user2': { password: '2424', name: 'مستخدم تجريبي 3', role: 'employee' },
+            'user3': { password: '2525', name: 'مستخدم تجريبي 4', role: 'employee' },
+            'user4': { password: '2626', name: 'مستخدم تجريبي 5', role: 'employee' },
+            'user5': { password: '2727', name: 'مستخدم تجريبي 6', role: 'employee' },
+            'admin_test': { password: 'password', name: 'مدير الاختبار', role: 'admin' }, 
+            'manager_test': { password: 'mgr456', name: 'مدير اختبار', role: 'manager' }, 
+            'employee_test': { password: 'emp123', name: 'موظف اختبار', role: 'employee' } 
+        };
+
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentDate();
+            setInterval(updateCurrentDate, 60000);
+            loadFromStorage();
+        });
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+
+            if (users[usernameInput] && users[usernameInput].password === passwordInput) {
+                currentEmployeeId = usernameInput;
+                currentEmployee = users[usernameInput].name;
+                currentEmployeeRole = users[usernameInput].role; 
+                currentEmployeePermissions = ROLES[currentEmployeeRole]; // Set permissions based on role
+                
+                document.getElementById('employeeName').textContent = currentEmployee;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                
+                // Filter withdrawalHistory for the current employee
+                withdrawalHistory = allWithdrawalHistory.filter(w => w.employeeId === currentEmployeeId);
+
+                logActivity('تسجيل دخول', `الموظف ${currentEmployee} قام بتسجيل الدخول.`);
+                initializeDashboard();
+                showNotification('success', `أهلاً وسهلاً ${currentEmployee}!`, 'تم تسجيل الدخول بنجاح.');
+            } else {
+                showNotification('error', 'فشل تسجيل الدخول', 'اسم المستخدم أو كلمة المرور غير صحيحة.');
+            }
+        });
+
+        function logout() {
+            logActivity('تسجيل خروج', `الموظف ${currentEmployee} قام بتسجيل الخروج.`);
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+            currentEmployee = '';
+            currentEmployeeId = '';
+            currentEmployeeRole = ''; 
+            currentEmployeePermissions = {}; // Clear permissions on logout
+            withdrawalHistory = []; // Clear employee-specific history on logout
+            showNotification('info', 'تم تسجيل الخروج', 'لقد قمت بتسجيل الخروج بنجاح.');
+        }
+
+        function initializeDashboard() {
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderRecentWithdrawals(); // This now renders all withdrawals in the main panel
+            renderLowStockItems(); // Render low stock items section
+            
+            // Show/hide buttons based on permissions
+            document.getElementById('addProductBtn').classList.toggle('hidden', !currentEmployeePermissions.canAddProduct);
+            document.getElementById('allWithdrawalsBtn').classList.toggle('hidden', !currentEmployeePermissions.canViewAllWithdrawals);
+            document.getElementById('manageUsersBtn').classList.toggle('hidden', !currentEmployeePermissions.canManageUsers);
+            document.getElementById('auditLogBtn').classList.toggle('hidden', !currentEmployeePermissions.canViewAuditLog);
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('ar-SA', options);
+        }
+
+        function updateStats() {
+            const totalProducts = inventory.reduce((sum, item) => sum + item.quantity, 0);
+            
+            // Today's withdrawals for the CURRENT employee
+            const todayWithdrawals = allWithdrawalHistory.filter(w => { // Changed to allWithdrawalHistory
+                const today = new Date().toDateString();
+                return new Date(w.date).toDateString() === today;
+            }).length;
+            
+            const lowStockItems = inventory.filter(item => item.quantity <= item.minStock);
+            const lowStockCount = lowStockItems.length;
+            const totalValue = inventory.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
+            document.getElementById('totalProducts').textContent = totalProducts.toLocaleString();
+            document.getElementById('todayWithdrawals').textContent = todayWithdrawals;
+            document.getElementById('lowStockItems').textContent = lowStockCount;
+            document.getElementById('totalValue').textContent = totalValue.toLocaleString() + ' ر.س';
+
+            // Show/hide low stock section
+            if (lowStockCount > 0) {
+                document.getElementById('lowStockSection').classList.remove('hidden');
+                document.getElementById('noLowStock').classList.add('hidden');
+            } else {
+                document.getElementById('lowStockSection').classList.add('hidden');
+                document.getElementById('noLowStock').classList.remove('hidden');
+            }
+        }
+
+        function renderLowStockItems() {
+            const lowStockListDiv = document.getElementById('lowStockList');
+            lowStockListDiv.innerHTML = '';
+            const lowStockItems = inventory.filter(item => item.quantity <= item.minStock);
+
+            if (lowStockItems.length === 0) {
+                document.getElementById('lowStockSection').classList.add('hidden');
+                return;
+            } else {
+                document.getElementById('lowStockSection').classList.remove('hidden');
+            }
+
+            lowStockItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `bg-red-50 rounded-xl p-4 border-r-4 border-red-500 shadow-md`;
+                itemDiv.innerHTML = `
+                    <h4 class="font-bold text-gray-800 text-lg mb-1">${item.name}</h4>
+                    <p class="text-gray-600 text-sm mb-2">الكمية المتبقية: <strong class="text-red-600">${item.quantity}</strong></p>
+                    <p class="text-gray-600 text-sm">الحد الأدنى: ${item.minStock}</p>
+                `;
+                lowStockListDiv.appendChild(itemDiv);
+            });
+        }
+
+        function renderInventory(filteredItems = null) {
+            const inventoryList = document.getElementById('inventoryList');
+            inventoryList.innerHTML = '';
+
+            const itemsToRender = filteredItems || inventory;
+
+            if (itemsToRender.length === 0) {
+                inventoryList.innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fas fa-search text-4xl mb-4"></i><p>لا توجد منتجات تطابق البحث</p></div>';
+                return;
+            }
+
+            itemsToRender.forEach(item => {
+                const isLowStock = item.quantity <= item.minStock;
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `inventory-card bg-gray-50 rounded-xl p-6 ${isLowStock ? 'border-r-red-500 bg-red-50' : ''}`;
+                
+                let actionButtons = '';
+                if (currentEmployeePermissions.canEditProduct) { // Check for edit permission
+                    actionButtons += `
+                        <button 
+                            onclick="showEditProductModal(${item.id})" 
+                            class="text-blue-600 hover:bg-blue-100 p-3 rounded-xl transition duration-200"
+                            title="تعديل"
+                        >
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    `;
+                }
+                if (currentEmployeePermissions.canDeleteProduct) { // Check for delete permission
+                    actionButtons += `
+                        <button 
+                            onclick="showDeleteProductConfirmationModal(${item.id})" 
+                            class="text-red-600 hover:bg-red-100 p-3 rounded-xl transition duration-200"
+                            title="حذف"
+                        >
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                }
+                // Quick withdraw is generally available to all who can withdraw
+                actionButtons += `
+                    <button 
+                        onclick="quickWithdraw(${item.id})" 
+                        class="text-green-600 hover:bg-green-100 p-3 rounded-xl transition duration-200"
+                        title="سحب سريع"
+                    >
+                        <i class="fas fa-download"></i>
+                    </button>
+                `;
+
+                itemDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h4 class="font-bold text-gray-800 text-lg">${item.name}</h4>
+                                ${isLowStock ? '<span class="mr-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">مخزون منخفض!</span>' : ''}
+                            </div>
+                            <p class="text-gray-600 text-sm mb-3">${item.description || ''}</p>
+                            <div class="flex items-center space-x-6 space-x-reverse text-sm text-gray-600">
+                                <span class="flex items-center"><i class="fas fa-layer-group ml-2 brand-green"></i>الكمية: <strong class="mr-1">${item.quantity}</strong></span>
+                                <span class="flex items-center"><i class="fas fa-tag ml-2 text-blue-600"></i>السعر: <strong class="mr-1">${item.price} ر.س</strong></span>
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">${getCategoryName(item.category)}</span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-3 space-x-reverse">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+                
+                inventoryList.appendChild(itemDiv);
+            });
+        }
+
+        function searchProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                if (currentFilter === 'all') {
+                    renderInventory();
+                } else {
+                    filterByCategory(currentFilter, document.querySelector(`.filter-btn[onclick*="${currentFilter}"]`));
+                }
+                return;
+            }
+
+            const filteredInventory = inventory.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm) ||
+                                    item.category.toLowerCase().includes(searchTerm) ||
+                                    item.price.toString().includes(searchTerm) ||
+                                    getCategoryName(item.category).toLowerCase().includes(searchTerm);
+                
+                const matchesFilter = currentFilter === 'all' || item.category === currentFilter;
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            renderInventory(filteredInventory);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchProducts(); // Re-render inventory with no search term
+        }
+
+        function filterByCategory(category, clickedButton) {
+            currentFilter = category;
+            
+            // Update filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-green-100', 'text-green-700');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            
+            if (clickedButton) {
+                clickedButton.classList.remove('bg-gray-100', 'text-gray-700');
+                clickedButton.classList.add('active', 'bg-green-100', 'text-green-700');
+            }
+            
+            if (category === 'all') {
+                renderInventory();
+            } else {
+                const filtered = inventory.filter(item => item.category === category);
+                renderInventory(filtered);
+            }
+        }
+
+        function quickWithdraw(productId) {
+            const product = inventory.find(item => item.id === productId);
+            if (product) {
+                const quantity = prompt(`سحب سريع من ${product.name}\nالكمية المتاحة: ${product.quantity}\nأدخل الكمية المطلوبة:`, '1');
+                
+                if (quantity && !isNaN(quantity) && quantity > 0) {
+                    const qty = parseInt(quantity);
+                    if (qty <= product.quantity) {
+                        // Set form values and trigger withdrawal
+                        document.getElementById('productSelect').value = productId;
+                        document.getElementById('withdrawQuantity').value = qty;
+                        document.getElementById('withdrawReason').value = 'سحب سريع';
+                        showWithdrawalConfirmationModal(); // Use the confirmation modal
+                    } else {
+                        showNotification('error', 'كمية غير كافية', `الكمية المطلوبة أكبر من المتوفر (${product.quantity}).`);
+                    }
+                } else if (quantity !== null) { // If user entered something but it's invalid
+                    showNotification('error', 'إدخال غير صالح', 'يرجى إدخال كمية رقمية صحيحة وموجبة.');
+                }
+            }
+        }
+
+        function updateProductSelect() {
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '<option value="">اختر المنتج</option>';
+            
+            inventory.forEach(item => {
+                if (item.quantity > 0) {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = `${item.name} (متوفر: ${item.quantity} - سعر: ${item.price} ر.س)`;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        function showWithdrawalConfirmationModal() {
+            const productId = parseInt(document.getElementById('productSelect').value);
+            const quantity = parseInt(document.getElementById('withdrawQuantity').value);
+            const reason = document.getElementById('withdrawReason').value;
+
+            if (!productId) {
+                showNotification('error', 'خطأ في السحب', 'يرجى اختيار المنتج.');
+                return;
+            }
+            if (isNaN(quantity) || quantity <= 0) {
+                showNotification('error', 'خطأ في الكمية', 'يرجى إدخال كمية رقمية صحيحة وموجبة.');
+                return;
+            }
+
+            const product = inventory.find(item => item.id === productId);
+            if (!product) {
+                showNotification('error', 'خطأ في المنتج', 'المنتج غير موجود.');
+                return;
+            }
+            if (quantity > product.quantity) {
+                showNotification('error', 'كمية غير كافية', `الكمية المطلوبة (${quantity}) أكبر من المتوفر (${product.quantity}).`);
+                return;
+            }
+
+            document.getElementById('confirmWithdrawProductName').textContent = product.name;
+            document.getElementById('confirmWithdrawQuantity').textContent = quantity;
+            document.getElementById('confirmWithdrawUnitPrice').textContent = product.price.toLocaleString();
+            document.getElementById('confirmWithdrawTotalValue').textContent = (quantity * product.price).toLocaleString();
+            document.getElementById('confirmWithdrawReason').textContent = reason || 'لا يوجد سبب محدد';
+
+            document.getElementById('withdrawalConfirmationModal').classList.remove('hidden');
+        }
+
+        function hideWithdrawalConfirmationModal() {
+            document.getElementById('withdrawalConfirmationModal').classList.add('hidden');
+        }
+
+        function confirmWithdrawal() {
+            const productId = parseInt(document.getElementById('productSelect').value);
+            const quantity = parseInt(document.getElementById('withdrawQuantity').value);
+            const reason = document.getElementById('withdrawReason').value;
+
+            const product = inventory.find(item => item.id === productId);
+            
+            // Process withdrawal
+            product.quantity -= quantity;
+            
+            const newWithdrawal = {
+                id: Date.now(), // Unique ID for each withdrawal
+                productName: product.name,
+                productId: product.id,
+                quantity: quantity,
+                unitPrice: product.price,
+                reason: reason || 'لا يوجد سبب محدد',
+                employee: currentEmployee,
+                employeeId: currentEmployeeId,
+                date: new Date(),
+                value: quantity * product.price,
+                category: product.category
+            };
+
+            // Add to employee's withdrawal history (for invoice)
+            withdrawalHistory.unshift(newWithdrawal);
+            // Add to all withdrawal history (for main display and admin view)
+            allWithdrawalHistory.unshift(newWithdrawal);
+
+            // Clear form
+            document.getElementById('productSelect').value = '';
+            document.getElementById('withdrawQuantity').value = '';
+            document.getElementById('withdrawReason').value = '';
+
+            // Update displays
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderRecentWithdrawals(); // This now renders all withdrawals
+            renderLowStockItems(); // Update low stock section
+            saveToStorage();
+
+            logActivity('سحب منتج', `تم سحب ${quantity} قطعة من ${product.name} بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم السحب بنجاح', `تم سحب ${quantity} قطعة من ${product.name} بقيمة ${(quantity * product.price).toLocaleString()} ر.س.`);
+            hideWithdrawalConfirmationModal();
+        }
+
+        function renderRecentWithdrawals() {
+            const recentDiv = document.getElementById('recentWithdrawals');
+            recentDiv.innerHTML = '';
+
+            // Decide which history to display based on permissions
+            const withdrawalsToDisplay = currentEmployeePermissions.canViewAllWithdrawals ? allWithdrawalHistory : withdrawalHistory;
+            
+            if (withdrawalsToDisplay.length === 0) {
+                recentDiv.innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fas fa-inbox text-4xl mb-4"></i><p>لا توجد عمليات سحب حتى الآن</p></div>';
+                return;
+            }
+
+            // Group withdrawals by date
+            const groupedWithdrawals = withdrawalsToDisplay.reduce((acc, withdrawal) => {
+                const dateKey = new Date(withdrawal.date).toLocaleDateString('ar-SA', {
+                    weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric'
+                });
+                if (!acc[dateKey]) {
+                    acc[dateKey] = [];
+                }
+                acc[dateKey].push(withdrawal);
+                return acc;
+            }, {});
+
+            // Sort dates in descending order
+            const sortedDates = Object.keys(groupedWithdrawals).sort((a, b) => {
+                // Parse date strings correctly for comparison
+                const dateA = new Date(a.split('، ')[1].split('/').reverse().join('-'));
+                const dateB = new Date(b.split('، ')[1].split('/').reverse().join('-'));
+                return dateB - dateA;
+            });
+
+            sortedDates.forEach(dateKey => {
+                const dateHeader = document.createElement('h4');
+                dateHeader.className = 'withdrawal-date-header text-lg font-semibold text-gray-700 mt-6 mb-3 pb-2 border-b border-gray-200';
+                dateHeader.textContent = `سحوبات يوم ${dateKey}`;
+                recentDiv.appendChild(dateHeader);
+
+                // Sort withdrawals within each day by time (most recent first)
+                groupedWithdrawals[dateKey].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                groupedWithdrawals[dateKey].forEach(withdrawal => {
+                    const withdrawalDiv = document.createElement('div');
+                    withdrawalDiv.className = 'withdrawal-animation bg-gradient-to-r from-gray-50 to-green-50 rounded-xl p-4 border-r-4 border-green-500 mb-2 withdrawal-item';
+                    
+                    const date = new Date(withdrawal.date);
+                    const timeStr = date.toLocaleTimeString('ar-SA', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    let deleteButton = '';
+                    // Only show delete button if user has permission
+                    if (currentEmployeePermissions.canDeleteWithdrawal) {
+                        deleteButton = `
+                            <button 
+                                onclick="showDeleteWithdrawalConfirmationModal(${withdrawal.id})" 
+                                class="text-red-600 hover:bg-red-100 p-2 rounded-full transition duration-200"
+                                title="حذف السحب"
+                            >
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        `;
+                    }
+
+                    withdrawalDiv.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h5 class="font-bold text-gray-800 mb-1">${withdrawal.productName}</h5>
+                                <div class="space-y-1">
+                                    <p class="text-gray-600 text-sm flex items-center">
+                                        <i class="fas fa-cubes ml-2 text-blue-500"></i>
+                                        الكمية: <strong class="mr-1">${withdrawal.quantity}</strong>
+                                    </p>
+                                    <p class="text-gray-600 text-sm flex items-center">
+                                        <i class="fas fa-comment ml-2 text-purple-500"></i>
+                                        ${withdrawal.reason}
+                                    </p>
+                                    <p class="text-gray-600 text-sm flex items-center">
+                                        <i class="fas fa-user ml-2 text-gray-500"></i>
+                                        الموظف: <strong class="mr-1">${withdrawal.employee}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-left flex flex-col items-end">
+                                <p class="text-xs text-gray-500 mb-2">${timeStr}</p>
+                                <p class="text-sm font-bold brand-green">${withdrawal.value.toLocaleString()} ر.س</p>
+                                ${deleteButton}
+                            </div>
+                        </div>
+                    `;
+                    
+                    recentDiv.appendChild(withdrawalDiv);
+                });
+            });
+        }
+
+        function showDeleteWithdrawalConfirmationModal(withdrawalId) {
+            const withdrawalToDelete = allWithdrawalHistory.find(w => w.id === withdrawalId);
+            if (!withdrawalToDelete) {
+                showNotification('error', 'خطأ', 'عملية السحب غير موجودة.');
+                return;
+            }
+
+            showConfirmationModal(
+                'حذف عملية سحب',
+                `هل أنت متأكد من حذف عملية السحب هذه؟<br>المنتج: <strong>${withdrawalToDelete.productName}</strong><br>الكمية: <strong>${withdrawalToDelete.quantity}</strong><br>الموظف: <strong>${withdrawalToDelete.employee}</strong><br><br>لا يمكن التراجع عن هذا الإجراء. سيتم استعادة الكمية للمخزون.`,
+                'warning',
+                () => deleteWithdrawal(withdrawalId)
+            );
+        }
+
+        function deleteWithdrawal(withdrawalId) {
+            if (!currentEmployeePermissions.canDeleteWithdrawal) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لحذف عمليات السحب.');
+                hideConfirmationModal();
+                return;
+            }
+
+            const withdrawalIndex = allWithdrawalHistory.findIndex(w => w.id === withdrawalId);
+            if (withdrawalIndex === -1) {
+                showNotification('error', 'خطأ', 'عملية السحب غير موجودة.');
+                hideConfirmationModal();
+                return;
+            }
+
+            const withdrawalToDelete = allWithdrawalHistory[withdrawalIndex];
+
+            // Restore product quantity
+            const product = inventory.find(item => item.id === withdrawalToDelete.productId);
+            if (product) {
+                product.quantity += withdrawalToDelete.quantity;
+            }
+
+            // Remove from allWithdrawalHistory
+            allWithdrawalHistory.splice(withdrawalIndex, 1);
+
+            // Also remove from current employee's specific history if it exists there
+            const employeeWithdrawalIndex = withdrawalHistory.findIndex(w => w.id === withdrawalId);
+            if (employeeWithdrawalIndex !== -1) {
+                withdrawalHistory.splice(employeeWithdrawalIndex, 1);
+            }
+
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderRecentWithdrawals(); // Re-render the main display
+            renderLowStockItems(); // Update low stock section
+            saveToStorage();
+
+            logActivity('حذف سحب', `تم حذف سحب لـ ${withdrawalToDelete.productName} (الكمية: ${withdrawalToDelete.quantity}) بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم الحذف بنجاح', 'تم حذف عملية السحب بنجاح واستعادة الكمية للمخزون.');
+            hideConfirmationModal();
+        }
+
+
+        function generateInvoice() {
+            // The invoice is generated based on the current employee's withdrawalHistory
+            if (withdrawalHistory.length === 0) {
+                showNotification('info', 'لا توجد بيانات', 'لا توجد عمليات سحب لإنشاء فاتورة لهذا الموظف.');
+                return;
+            }
+
+            // Calculate comprehensive statistics
+            const totalValue = withdrawalHistory.reduce((sum, w) => sum + w.value, 0);
+            const totalQuantity = withdrawalHistory.reduce((sum, w) => sum + w.quantity, 0);
+            const uniqueProducts = new Set(withdrawalHistory.map(w => w.productName)).size;
+            const maxWithdrawal = withdrawalHistory.length > 0 ? Math.max(...withdrawalHistory.map(w => w.value)) : 0;
+            const avgWithdrawal = withdrawalHistory.length > 0 ? totalValue / withdrawalHistory.length : 0;
+
+            // Calculate date range
+            const dates = withdrawalHistory.map(w => new Date(w.date));
+            const minDate = dates.length > 0 ? new Date(Math.min(...dates)) : new Date();
+            const maxDate = dates.length > 0 ? new Date(Math.max(...dates)) : new Date();
+            const reportPeriod = `من ${minDate.toLocaleDateString('ar-SA')} إلى ${maxDate.toLocaleDateString('ar-SA')}`;
+
+            // Update invoice details
+            document.getElementById('invoiceEmployeeName').textContent = currentEmployee;
+            document.getElementById('invoiceDate').textContent = new Date().toLocaleDateString('ar-SA');
+            document.getElementById('invoiceNumber').textContent = 'BS-INV-' + Date.now().toString().slice(-8);
+            document.getElementById('totalOperations').textContent = withdrawalHistory.length + ' عملية';
+            document.getElementById('reportPeriod').textContent = reportPeriod;
+            document.getElementById('invoiceTotalValue').textContent = totalValue.toLocaleString() + ' ر.س';
+            document.getElementById('invoiceTotalQuantity').textContent = totalQuantity.toLocaleString() + ' قطعة';
+            document.getElementById('uniqueProducts').textContent = uniqueProducts + ' منتج';
+            document.getElementById('maxWithdrawal').textContent = maxWithdrawal.toLocaleString() + ' ر.س';
+            document.getElementById('avgWithdrawal').textContent = avgWithdrawal.toFixed(2) + ' ر.س';
+            document.getElementById('finalTotal').textContent = totalValue.toLocaleString() + ' ر.س';
+            document.getElementById('signatureEmployee').textContent = currentEmployee;
+
+            // Populate table
+            const tableBody = document.getElementById('invoiceTableBody');
+            tableBody.innerHTML = '';
+
+            withdrawalHistory.forEach((withdrawal, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
+                
+                const date = new Date(withdrawal.date);
+                const timeStr = date.toLocaleString('ar-SA', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-4 text-center font-bold">${index + 1}</td>
+                    <td class="border border-gray-300 p-4 font-medium">${withdrawal.productName}</td>
+                    <td class="border border-gray-300 p-4 text-center font-bold text-blue-600">${withdrawal.quantity}</td>
+                    <td class="border border-gray-300 p-4 text-center">${withdrawal.unitPrice.toLocaleString()} ر.س</td>
+                    <td class="border border-gray-300 p-4 text-center font-bold brand-green">${withdrawal.value.toLocaleString()} ر.س</td>
+                    <td class="border border-gray-300 p-4 text-sm">${withdrawal.reason}</td>
+                    <td class="border border-gray-300 p-4 text-center text-sm">${timeStr}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+
+            // Show modal
+            document.getElementById('invoiceModal').classList.remove('hidden');
+            showNotification('success', 'تم إنشاء الفاتورة', 'تم إنشاء الفاتورة بنجاح!');
+        }
+
+        // --- وظائف التحميل والطباعة الجديدة ---
+
+        // وظيفة الطباعة
+        function printInvoice() {
+            showNotification('info', 'جاري الطباعة', 'جاري تحضير الفاتورة للطباعة...');
+            // إخفاء الأزرار والعناصر غير المرغوب فيها قبل الطباعة
+            const invoiceModal = document.getElementById('invoiceModal');
+            const noPrintElements = invoiceModal.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            // إزالة الظلال والحدود من الـ invoice-container عند الطباعة
+            const invoiceContainer = invoiceModal.querySelector('.invoice-container');
+            invoiceContainer.style.boxShadow = 'none';
+            invoiceContainer.style.border = 'none';
+
+            // Set a timeout to ensure styles are applied before printing
+            setTimeout(() => {
+                window.print();
+                // Revert styles after printing
+                noPrintElements.forEach(el => el.style.display = '');
+                invoiceContainer.style.boxShadow = ''; 
+                invoiceContainer.style.border = ''; 
+            }, 300); // Small delay
+        }
+
+        // وظيفة تحميل PDF
+        async function downloadInvoicePDF() {
+            showNotification('info', 'جاري التحميل', 'جاري تحضير الفاتورة للتحميل كـ PDF...');
+            const invoiceContent = document.getElementById('invoiceContent'); 
+
+            // Temporarily hide elements not meant for print/PDF
+            const noPrintElements = invoiceContent.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            const invoiceContainer = document.getElementById('invoiceModal').querySelector('.invoice-container');
+            invoiceContainer.style.boxShadow = 'none';
+            invoiceContainer.style.border = 'none';
+
+            try {
+                if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+                    console.error('html2canvas or jspdf library not loaded.');
+                    showNotification('error', 'خطأ في المكتبات', 'مكتبات التحميل غير متوفرة. يرجى تحديث الصفحة.');
+                    return;
+                }
+
+                const canvas = await html2canvas(invoiceContent, {
+                    scale: 2, // Higher scale for better resolution
+                    useCORS: true, // Enable CORS for images
+                    logging: false,
+                    allowTaint: true, // Allow tainting for cross-origin images if necessary
+                    // Attempt to include Cairo font for Arabic support
+                    fontFaces: [{
+                        family: 'Cairo',
+                        src: 'url(https://fonts.gstatic.com/s/cairo/v12/SLXGc1nY6HgpO_Vbmrsm.woff2) format("woff2")',
+                        weight: 'normal'
+                    }]
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`فاتورة_سحوبات_${currentEmployeeId}_${new Date().toLocaleDateString('en-CA')}.pdf`);
+                showNotification('success', 'تم التحميل', 'تم تحميل الفاتورة كـ PDF بنجاح!');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showNotification('error', 'خطأ في التحميل', 'حدث خطأ أثناء تحميل الفاتورة كـ PDF. يرجى المحاولة مرة أخرى.');
+            } finally {
+                // Revert styles after PDF generation
+                noPrintElements.forEach(el => el.style.display = '');
+                invoiceContainer.style.boxShadow = ''; 
+                invoiceContainer.style.border = ''; 
+            }
+        }
+
+        // وظيفة تحميل Excel
+        function downloadInvoiceExcel() {
+            showNotification('info', 'جاري التحميل', 'جاري تحضير الفاتورة للتحميل كـ Excel...');
+            // Use employee's specific withdrawal history for their invoice Excel
+            if (withdrawalHistory.length === 0) {
+                showNotification('info', 'لا توجد بيانات', 'لا توجد بيانات سحب لتحميلها كـ Excel.');
+                return;
+            }
+
+            const data = [];
+            // Add header row
+            data.push(['#', 'اسم المنتج', 'الكمية', 'السعر الوحدة (ر.س)', 'القيمة الإجمالية (ر.س)', 'السبب', 'التاريخ والوقت']);
+
+            // Add withdrawal data
+            withdrawalHistory.forEach((w, index) => {
+                const date = new Date(w.date);
+                const dateTimeStr = date.toLocaleString('ar-SA', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+                data.push([
+                    index + 1,
+                    w.productName,
+                    w.quantity,
+                    w.unitPrice,
+                    w.value,
+                    dateTimeStr,
+                    w.reason
+                ]);
+            });
+
+            // Add summary
+            const totalValue = withdrawalHistory.reduce((sum, w) => sum + w.value, 0);
+            data.push([]); // Empty row for spacing
+            data.push(['', '', '', '', 'إجمالي قيمة السحوبات:', totalValue.toLocaleString() + ' ر.س', '']);
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "سحوبات الموظف");
+
+            const fileName = `سحوبات_الموظف_${currentEmployeeId}_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showNotification('success', 'تم التحميل', 'تم تحميل الفاتورة كـ Excel بنجاح!');
+        }
+
+        // --- نهاية وظائف التحميل والطباعة الجديدة ---
+
+        // --- New functions for Recent Withdrawals PDF/Print ---
+        async function downloadRecentWithdrawalsPDF() {
+            showNotification('info', 'جاري التحميل', 'جاري تحضير سجل السحوبات للتحميل كـ PDF...');
+            const recentWithdrawalsContent = document.getElementById('recentWithdrawals');
+
+            // Temporarily hide elements not meant for print/PDF
+            const noPrintElements = recentWithdrawalsContent.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            try {
+                if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+                    console.error('html2canvas or jspdf library not loaded.');
+                    showNotification('error', 'خطأ في المكتبات', 'مكتبات التحميل غير متوفرة. يرجى تحديث الصفحة.');
+                    return;
+                }
+
+                const canvas = await html2canvas(recentWithdrawalsContent, {
+                    scale: 2, // Higher scale for better resolution
+                    useCORS: true, // Enable CORS for images
+                    logging: false,
+                    allowTaint: true, // Allow tainting for cross-origin images if necessary
+                    fontFaces: [{
+                        family: 'Cairo',
+                        src: 'url(https://fonts.gstatic.com/s/cairo/v12/SLXGc1nY6HgpO_Vbmrsm.woff2) format("woff2")',
+                        weight: 'normal'
+                    }]
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`سجل_سحوبات_الموظف_${currentEmployeeId}_${new Date().toLocaleDateString('en-CA')}.pdf`);
+                showNotification('success', 'تم التحميل', 'تم تحميل سجل السحوبات كـ PDF بنجاح!');
+            } catch (error) {
+                console.error('Error generating Recent Withdrawals PDF:', error);
+                showNotification('error', 'خطأ في التحميل', 'حدث خطأ أثناء تحميل سجل السحوبات كـ PDF. يرجى المحاولة مرة أخرى.');
+            } finally {
+                // Revert styles after PDF generation
+                noPrintElements.forEach(el => el.style.display = '');
+            }
+        }
+
+        function printRecentWithdrawals() {
+            showNotification('info', 'جاري الطباعة', 'جاري تحضير سجل السحوبات للطباعة...');
+            const recentWithdrawalsContent = document.getElementById('recentWithdrawals');
+            const originalContents = document.body.innerHTML;
+            const printContents = recentWithdrawalsContent.innerHTML;
+
+            // Temporarily hide elements not meant for print
+            const noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+
+            // Create a temporary print window
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>سجل السحوبات</title>');
+            // Copy relevant styles
+            printWindow.document.write('<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">');
+            printWindow.document.write('<style>');
+            printWindow.document.write(`
+                body { font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; margin: 20px; background: white; }
+                .recent-withdrawals-print-area { padding: 10px; }
+                .withdrawal-date-header { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #ccc; }
+                .withdrawal-item { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; }
+                .withdrawal-item h5 { font-weight: bold; margin-bottom: 5px; }
+                .withdrawal-item p { font-size: 12px; margin-bottom: 3px; }
+                .withdrawal-item strong { font-weight: bold; }
+                .withdrawal-item .text-left { text-align: left; }
+                .brand-green { color: #10b981; }
+                .text-blue-500 { color: #3b82f6; }
+                .text-purple-500 { color: #a855f7; }
+                @media print {
+                    .no-print { display: none !important; }
+                    body { margin: 0; padding: 0; }
+                    .recent-withdrawals-print-area { box-shadow: none !important; border: none !important; }
+                    .withdrawal-item { page-break-inside: avoid; }
+                }
+            `);
+            printWindow.document.write('</style></head><body>');
+            printWindow.document.write('<h2 style="text-align: center; color: #10b981;">سجل السحوبات للموظف: ' + currentEmployee + '</h2>');
+            printWindow.document.write('<p style="text-align: center; font-size: 14px; color: #555;">تاريخ الطباعة: ' + new Date().toLocaleDateString('ar-SA') + '</p>');
+            printWindow.document.write('<div class="recent-withdrawals-print-area">' + printContents + '</div>');
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+
+            // Wait for content to load, then print
+            printWindow.onload = function() {
+                printWindow.print();
+                printWindow.close();
+                // Revert display for no-print elements
+                noPrintElements.forEach(el => el.style.display = '');
+            };
+        }
+        // --- End New functions for Recent Withdrawals PDF/Print ---
+
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+        }
+
+        // Removed clearWithdrawals function as it's no longer needed in the main panel
+        // The "All Withdrawals Modal" now handles viewing all withdrawals.
+        // If a "clear all withdrawals" functionality is needed, it should be added to the All Withdrawals Modal
+        // and require admin/manager permissions.
+
+        function showAddProductModal() {
+            if (!currentEmployeePermissions.canAddProduct) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لإضافة منتجات.');
+                return;
+            }
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').classList.add('hidden');
+            document.getElementById('addProductForm').reset();
+        }
+
+        // Function to prompt for password
+        function promptForPassword(callback) {
+            showConfirmationModal(
+                'تأكيد العملية',
+                'يرجى إدخال كلمة المرور الخاصة بك لتأكيد هذه العملية:',
+                'info',
+                (password) => {
+                    if (users[currentEmployeeId] && users[currentEmployeeId].password === password) {
+                        callback(true);
+                    } else {
+                        showNotification('error', 'كلمة مرور خاطئة', 'كلمة المرور غير صحيحة. العملية ملغاة.');
+                        callback(false);
+                    }
+                },
+                true // Indicates that this confirmation needs password input
+            );
+        }
+
+        // Function to confirm and add product
+        function confirmAddProduct() {
+            const name = document.getElementById('productName').value;
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const category = document.getElementById('productCategory').value;
+            const minStock = parseInt(document.getElementById('productMinStock').value);
+
+            // Basic validation
+            if (!name || name.trim() === '') {
+                showNotification('error', 'خطأ في الإدخال', 'اسم المنتج لا يمكن أن يكون فارغاً.');
+                return;
+            }
+            if (isNaN(quantity) || quantity < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'الكمية يجب أن تكون رقماً موجباً أو صفراً.');
+                return;
+            }
+            if (isNaN(price) || price < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'السعر يجب أن يكون رقماً موجباً أو صفراً.');
+                return;
+            }
+            if (!category || category.trim() === '') {
+                showNotification('error', 'خطأ في الإدخال', 'يرجى اختيار فئة للمنتج.');
+                return;
+            }
+            if (isNaN(minStock) || minStock < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'الحد الأدنى للمخزون يجب أن يكون رقماً موجباً أو صفراً.');
+                return;
+            }
+
+            const newProduct = {
+                id: Date.now(),
+                name: name,
+                quantity: quantity,
+                price: price,
+                category: category,
+                minStock: minStock,
+                description: `تمت الإضافة بواسطة ${currentEmployee} في ${new Date().toLocaleDateString('ar-SA')}`
+            };
+
+            inventory.push(newProduct);
+            
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderLowStockItems(); // Update low stock section
+            closeAddProductModal();
+            saveToStorage();
+            
+            logActivity('إضافة منتج', `تم إضافة المنتج "${name}" بكمية ${quantity} بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تمت الإضافة بنجاح', `تم إضافة "${name}" بكمية ${quantity} قطعة بنجاح!`);
+        }
+
+        document.getElementById('addProductForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentEmployeePermissions.canAddProduct) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لإضافة منتجات.');
+                return;
+            }
+
+            // If current user is admin, ask for password confirmation
+            if (currentEmployeeRole === 'admin') {
+                promptForPassword((isConfirmed) => {
+                    if (isConfirmed) {
+                        confirmAddProduct();
+                    }
+                });
+            } else {
+                // For other roles, proceed directly
+                confirmAddProduct();
+            }
+        });
+
+        function showDeleteProductConfirmationModal(id) {
+            const product = inventory.find(item => item.id === id);
+            if (!product) {
+                showNotification('error', 'خطأ', 'المنتج غير موجود.');
+                return;
+            }
+
+            showConfirmationModal(
+                'حذف منتج',
+                `هل أنت متأكد من حذف المنتج "${product.name}"؟<br>سيتم حذف المنتج نهائياً من المخزون.`,
+                'warning',
+                () => deleteProduct(id)
+            );
+        }
+
+        function deleteProduct(id) {
+            if (!currentEmployeePermissions.canDeleteProduct) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لحذف المنتجات.');
+                hideConfirmationModal();
+                return;
+            }
+
+            const product = inventory.find(item => item.id === id);
+            if (!product) {
+                showNotification('error', 'خطأ', 'المنتج غير موجود.');
+                hideConfirmationModal();
+                return;
+            }
+
+            inventory = inventory.filter(item => item.id !== id);
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderLowStockItems(); // Update low stock section
+            saveToStorage();
+
+            logActivity('حذف منتج', `تم حذف المنتج "${product.name}" بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم الحذف بنجاح', `تم حذف "${product.name}" بنجاح.`);
+            hideConfirmationModal();
+        }
+
+        let currentEditProductId = null; // To store the ID of the product being edited
+
+        function showEditProductModal(id) {
+            if (!currentEmployeePermissions.canEditProduct) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لتعديل المنتجات.');
+                return;
+            }
+
+            const product = inventory.find(item => item.id === id);
+            if (!product) {
+                showNotification('error', 'خطأ', 'المنتج غير موجود.');
+                return;
+            }
+
+            currentEditProductId = id;
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductQuantity').value = product.quantity;
+            document.getElementById('editProductPrice').value = product.price;
+            document.getElementById('editProductCategory').value = product.category;
+            document.getElementById('editProductMinStock').value = product.minStock;
+
+            document.getElementById('editProductModal').classList.remove('hidden');
+        }
+
+        function closeEditProductModal() {
+            document.getElementById('editProductModal').classList.add('hidden');
+            document.getElementById('editProductForm').reset();
+            currentEditProductId = null;
+        }
+
+        document.getElementById('editProductForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentEmployeePermissions.canEditProduct) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لتعديل المنتجات.');
+                return;
+            }
+
+            const id = parseInt(document.getElementById('editProductId').value);
+            const name = document.getElementById('editProductName').value;
+            const quantity = parseInt(document.getElementById('editProductQuantity').value);
+            const price = parseFloat(document.getElementById('editProductPrice').value);
+            const category = document.getElementById('editProductCategory').value;
+            const minStock = parseInt(document.getElementById('editProductMinStock').value);
+
+            // Basic validation
+            if (!name || name.trim() === '') {
+                showNotification('error', 'خطأ في الإدخال', 'اسم المنتج لا يمكن أن يكون فارغاً.');
+                return;
+            }
+            if (isNaN(quantity) || quantity < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'الكمية يجب أن تكون رقماً موجباً أو صفراً.');
+                return;
+            }
+            if (isNaN(price) || price < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'السعر يجب أن يكون رقماً موجباً أو صفراً.');
+                return;
+            }
+            if (!category || category.trim() === '') {
+                showNotification('error', 'خطأ في الإدخال', 'يرجى اختيار فئة للمنتج.');
+                return;
+            }
+            if (isNaN(minStock) || minStock < 0) {
+                showNotification('error', 'خطأ في الإدخال', 'الحد الأدنى للمخزون يجب أن يكون رقماً موجباً أو صفراً.');
+                return;
+            }
+
+            const productIndex = inventory.findIndex(item => item.id === id);
+            if (productIndex === -1) {
+                showNotification('error', 'خطأ', 'المنتج غير موجود.');
+                return;
+            }
+
+            const oldProduct = { ...inventory[productIndex] }; // Copy for logging
+
+            inventory[productIndex] = {
+                ...inventory[productIndex],
+                name: name,
+                quantity: quantity,
+                price: price,
+                category: category,
+                minStock: minStock
+            };
+
+            updateStats();
+            renderInventory();
+            updateProductSelect();
+            renderLowStockItems(); // Update low stock section
+            saveToStorage();
+            closeEditProductModal();
+
+            logActivity('تعديل منتج', `تم تعديل المنتج "${oldProduct.name}" (الكمية: ${oldProduct.quantity} -> ${quantity}, السعر: ${oldProduct.price} -> ${price}) بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم التعديل بنجاح', `تم تعديل المنتج "${name}" بنجاح.`);
+        });
+
+
+        function getCategoryName(category) {
+            const categories = {
+                'electronics': 'معلابات',
+                'clothing': 'منتجات جافة',
+                'food': 'اللحوم',
+                'tools': 'أدوات النظافة',
+                'office': 'مكتبية',
+                'ready': 'منتجات جاهزة للفروع'
+            };
+            return categories[category] || category;
+        }
+
+        function showNotification(type, title, message) {
+            const notification = document.getElementById('notification');
+            const notificationIcon = document.getElementById('notificationIcon');
+            const notificationText = document.getElementById('notificationText');
+            
+            notificationText.innerHTML = `<strong>${title}</strong><br>${message}`;
+            
+            // Reset classes
+            notification.className = 'fixed top-6 left-6 px-8 py-5 rounded-xl shadow-2xl z-50 notification flex items-center';
+            notificationIcon.className = 'ml-3 text-xl';
+
+            if (type === 'success') {
+                notification.classList.add('bg-green-500', 'text-white');
+                notificationIcon.classList.add('fas', 'fa-check-circle');
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-500', 'text-white');
+                notificationIcon.classList.add('fas', 'fa-times-circle');
+            } else if (type === 'info') {
+                notification.classList.add('bg-blue-500', 'text-white');
+                notificationIcon.classList.add('fas', 'fa-info-circle');
+            } else if (type === 'warning') {
+                notification.classList.add('bg-yellow-500', 'text-white');
+                notificationIcon.classList.add('fas', 'fa-exclamation-triangle');
+            }
+            
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 4000);
+        }
+
+        // General Confirmation Modal Functions
+        let currentConfirmationCallback = null;
+        let isPasswordConfirmation = false;
+
+        function showConfirmationModal(title, message, type, callback, needsPassword = false) {
+            const modal = document.getElementById('confirmationModal');
+            const icon = document.getElementById('confirmationIcon');
+            const titleElem = document.getElementById('confirmationTitle');
+            const messageElem = document.getElementById('confirmationMessage');
+            const confirmBtn = document.getElementById('confirmActionButton');
+
+            titleElem.textContent = title;
+            messageElem.innerHTML = message; // Use innerHTML for potential HTML tags in message
+
+            // Set icon based on type
+            icon.className = 'text-5xl mb-4'; // Reset classes
+            if (type === 'warning') {
+                icon.classList.add('fas', 'fa-exclamation-triangle', 'text-yellow-500');
+                confirmBtn.classList.remove('bg-blue-600', 'bg-green-600');
+                confirmBtn.classList.add('bg-red-600');
+            } else if (type === 'info') {
+                icon.classList.add('fas', 'fa-info-circle', 'text-blue-500');
+                confirmBtn.classList.remove('bg-red-600', 'bg-green-600');
+                confirmBtn.classList.add('bg-blue-600');
+            } else if (type === 'success') {
+                icon.classList.add('fas', 'fa-check-circle', 'text-green-500');
+                confirmBtn.classList.remove('bg-red-600', 'bg-blue-600');
+                confirmBtn.classList.add('bg-green-600');
+            }
+
+            currentConfirmationCallback = callback;
+            isPasswordConfirmation = needsPassword;
+
+            // If password confirmation, add input field
+            if (needsPassword) {
+                const passwordInput = document.createElement('input');
+                passwordInput.type = 'password';
+                passwordInput.id = 'confirmationPasswordInput';
+                passwordInput.placeholder = 'أدخل كلمة المرور';
+                passwordInput.className = 'w-full p-3 border border-gray-300 rounded-lg mb-4 text-center';
+                messageElem.parentNode.insertBefore(passwordInput, messageElem.nextSibling);
+                passwordInput.focus();
+            } else {
+                const existingPasswordInput = document.getElementById('confirmationPasswordInput');
+                if (existingPasswordInput) {
+                    existingPasswordInput.remove();
+                }
+            }
+
+            confirmBtn.onclick = () => {
+                if (isPasswordConfirmation) {
+                    const password = document.getElementById('confirmationPasswordInput').value;
+                    currentConfirmationCallback(password);
+                } else {
+                    currentConfirmationCallback();
+                }
+                hideConfirmationModal();
+            };
+
+            modal.classList.remove('hidden');
+        }
+
+        function hideConfirmationModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            currentConfirmationCallback = null;
+            isPasswordConfirmation = false;
+            const existingPasswordInput = document.getElementById('confirmationPasswordInput');
+            if (existingPasswordInput) {
+                existingPasswordInput.remove();
+            }
+        }
+
+
+        // --- New All Withdrawals Modal Functions ---
+        function showAllWithdrawalsModal() {
+            if (!currentEmployeePermissions.canViewAllWithdrawals) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لعرض سجل السحوبات الكامل.');
+                return;
+            }
+            document.getElementById('allWithdrawalsModal').classList.remove('hidden');
+            renderAllWithdrawals();
+        }
+
+        function closeAllWithdrawalsModal() {
+            document.getElementById('allWithdrawalsModal').classList.add('hidden');
+            document.getElementById('allWithdrawalsSearchInput').value = ''; // Clear search on close
+        }
+
+        function renderAllWithdrawals(filteredWithdrawals = null) {
+            const tableBody = document.getElementById('allWithdrawalsTableBody');
+            tableBody.innerHTML = '';
+
+            const withdrawalsToRender = filteredWithdrawals || allWithdrawalHistory;
+
+            if (withdrawalsToRender.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500"><i class="fas fa-box-open text-4xl mb-4"></i><p>لا توجد عمليات سحب مسجلة حتى الآن.</p></td></tr>';
+                return;
+            }
+
+            withdrawalsToRender.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+
+            withdrawalsToRender.forEach((withdrawal, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
+                
+                const date = new Date(withdrawal.date);
+                const dateTimeStr = date.toLocaleString('ar-SA', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-4 text-center font-bold">${index + 1}</td>
+                    <td class="border border-gray-300 p-4 font-medium">${withdrawal.productName}</td>
+                    <td class="border border-gray-300 p-4 text-center font-bold text-blue-600">${withdrawal.quantity}</td>
+                    <td class="border border-gray-300 p-4 text-center">${withdrawal.unitPrice.toLocaleString()} ر.س</td>
+                    <td class="border border-gray-300 p-4 text-center font-bold brand-green">${withdrawal.value.toLocaleString()} ر.س</td>
+                    <td class="border border-gray-300 p-4 text-sm">${withdrawal.reason}</td>
+                    <td class="border border-gray-300 p-4 text-sm font-semibold">${withdrawal.employee}</td>
+                    <td class="border border-gray-300 p-4 text-center text-sm">${dateTimeStr}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function filterAllWithdrawals() {
+            const searchTerm = document.getElementById('allWithdrawalsSearchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                renderAllWithdrawals();
+                return;
+            }
+
+            const filtered = allWithdrawalHistory.filter(w => {
+                return w.productName.toLowerCase().includes(searchTerm) ||
+                       w.employee.toLowerCase().includes(searchTerm) ||
+                       w.reason.toLowerCase().includes(searchTerm) ||
+                       w.quantity.toString().includes(searchTerm) ||
+                       w.value.toString().includes(searchTerm);
+            });
+            
+            renderAllWithdrawals(filtered);
+        }
+        // --- End New All Withdrawals Modal Functions ---
+
+        // --- User Management Functions (New) ---
+        function showUserManagementModal() {
+            if (!currentEmployeePermissions.canManageUsers) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لإدارة المستخدمين.');
+                return;
+            }
+            document.getElementById('userManagementModal').classList.remove('hidden');
+            renderUserList();
+        }
+
+        function closeUserManagementModal() {
+            document.getElementById('userManagementModal').classList.add('hidden');
+        }
+
+        function renderUserList() {
+            const tableBody = document.getElementById('userListTableBody');
+            tableBody.innerHTML = '';
+
+            for (const username in users) {
+                const user = users[username];
+                const row = document.createElement('tr');
+                row.className = 'bg-white hover:bg-gray-50';
+
+                // Create role select dropdown
+                const roleSelect = document.createElement('select');
+                roleSelect.className = 'w-full p-2 border border-gray-300 rounded-md';
+                roleSelect.onchange = (e) => updateUserRole(username, e.target.value);
+
+                for (const roleKey in ROLES) {
+                    const option = document.createElement('option');
+                    option.value = roleKey;
+                    option.textContent = ROLES[roleKey].name;
+                    if (user.role === roleKey) {
+                        option.selected = true;
+                    }
+                    roleSelect.appendChild(option);
+                }
+
+                // Create delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.onclick = () => showDeleteUserConfirmation(username);
+                deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm mr-2';
+                deleteButton.innerHTML = '<i class="fas fa-trash"></i> حذف';
+
+                // Disable changing own role
+                if (username === currentEmployeeId) {
+                    roleSelect.disabled = true; 
+                    deleteButton.disabled = true;
+                    deleteButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                // Disable changing 'admin' role by non-admins
+                // And prevent deleting the last admin
+                const adminUsers = Object.keys(users).filter(u => users[u].role === 'admin');
+                if (user.role === 'admin' && currentEmployeeRole !== 'admin') {
+                    roleSelect.disabled = true;
+                    deleteButton.disabled = true;
+                    deleteButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                if (user.role === 'admin' && adminUsers.length === 1 && username === adminUsers[0]) {
+                    deleteButton.disabled = true;
+                    deleteButton.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'border border-gray-300 p-4 text-center';
+                actionsCell.appendChild(roleSelect);
+                actionsCell.appendChild(deleteButton);
+
+
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-4 font-medium">${username}</td>
+                    <td class="border border-gray-300 p-4">${user.name}</td>
+                    <td class="border border-gray-300 p-4 text-center">${ROLES[user.role].name}</td>
+                `;
+                row.appendChild(actionsCell);
+                tableBody.appendChild(row);
+            }
+        }
+
+        function updateUserRole(username, newRole) {
+            if (!currentEmployeePermissions.canManageUsers) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لتعديل أدوار المستخدمين.');
+                return;
+            }
+            if (username === currentEmployeeId) {
+                showNotification('error', 'خطأ', 'لا يمكنك تغيير دورك الخاص.');
+                return;
+            }
+            // Prevent changing 'admin' role by non-admins
+            if (users[username].role === 'admin' && currentEmployeeRole !== 'admin') {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لتغيير دور المدير العام.');
+                return;
+            }
+            
+            const oldRole = users[username].role;
+            users[username].role = newRole;
+            saveToStorage(); // Save updated users data
+            renderUserList(); // Re-render the list to reflect changes
+
+            logActivity('تعديل دور مستخدم', `تم تعديل دور المستخدم ${users[username].name} من ${ROLES[oldRole].name} إلى ${ROLES[newRole].name} بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم التحديث', `تم تحديث دور المستخدم ${users[username].name} إلى ${ROLES[newRole].name}.`);
+        }
+
+        function showDeleteUserConfirmation(username) {
+            if (!currentEmployeePermissions.canManageUsers) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لحذف المستخدمين.');
+                return;
+            }
+            if (username === currentEmployeeId) {
+                showNotification('error', 'خطأ', 'لا يمكنك حذف حسابك الخاص.');
+                return;
+            }
+
+            const adminUsers = Object.keys(users).filter(u => users[u].role === 'admin');
+            if (users[username].role === 'admin' && adminUsers.length === 1) {
+                showNotification('error', 'خطأ', 'لا يمكن حذف آخر مستخدم لديه دور المدير العام.');
+                return;
+            }
+
+            showConfirmationModal(
+                'حذف مستخدم',
+                `هل أنت متأكد من حذف المستخدم "${users[username].name}" (${username})؟<br>لا يمكن التراجع عن هذا الإجراء.`,
+                'warning',
+                () => deleteUser(username)
+            );
+        }
+
+        function deleteUser(username) {
+            if (!currentEmployeePermissions.canManageUsers) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لحذف المستخدمين.');
+                hideConfirmationModal();
+                return;
+            }
+            if (username === currentEmployeeId) {
+                showNotification('error', 'خطأ', 'لا يمكنك حذف حسابك الخاص.');
+                hideConfirmationModal();
+                return;
+            }
+
+            const adminUsers = Object.keys(users).filter(u => users[u].role === 'admin');
+            if (users[username].role === 'admin' && adminUsers.length === 1) {
+                showNotification('error', 'خطأ', 'لا يمكن حذف آخر مستخدم لديه دور المدير العام.');
+                hideConfirmationModal();
+                return;
+            }
+
+            const deletedUserName = users[username].name;
+            delete users[username];
+            saveToStorage();
+            renderUserList(); // Re-render to reflect deletion
+
+            logActivity('حذف مستخدم', `تم حذف المستخدم "${deletedUserName}" (${username}) بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تم الحذف بنجاح', `تم حذف المستخدم "${deletedUserName}" بنجاح.`);
+            hideConfirmationModal();
+        }
+        // --- End User Management Functions ---
+
+        // --- Add User Functions (New) ---
+        document.getElementById('addUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            addNewUser();
+        });
+
+        function showAddUserModal() {
+            if (!currentEmployeePermissions.canManageUsers) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لإضافة مستخدمين.');
+                return;
+            }
+            document.getElementById('addUserModal').classList.remove('hidden');
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').classList.add('hidden');
+            document.getElementById('addUserForm').reset();
+        }
+
+        function addNewUser() {
+            const newUsername = document.getElementById('newUsername').value.trim();
+            const newFullName = document.getElementById('newFullName').value.trim();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const newUserRole = document.getElementById('newUserRole').value;
+
+            if (!newUsername || !newFullName || !newPassword || !confirmNewPassword || !newUserRole) {
+                showNotification('error', 'خطأ في الإدخال', 'يرجى ملء جميع الحقول.');
+                return;
+            }
+
+            if (users[newUsername]) {
+                showNotification('error', 'خطأ في اسم المستخدم', 'اسم المستخدم هذا موجود بالفعل. يرجى اختيار اسم مستخدم آخر.');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                showNotification('error', 'خطأ في كلمة المرور', 'كلمة المرور وتأكيد كلمة المرور غير متطابقين.');
+                return;
+            }
+
+            users[newUsername] = {
+                password: newPassword,
+                name: newFullName,
+                role: newUserRole
+            };
+
+            saveToStorage();
+            renderUserList(); // Update user list in management modal
+            closeAddUserModal();
+
+            logActivity('إضافة مستخدم', `تم إضافة مستخدم جديد "${newFullName}" (${newUsername}) بالدور ${ROLES[newUserRole].name} بواسطة ${currentEmployee}.`);
+            showNotification('success', 'تمت الإضافة بنجاح', `تم إضافة المستخدم "${newFullName}" بنجاح.`);
+        }
+        // --- End Add User Functions ---
+
+
+        // --- Audit Log Functions (New) ---
+        function logActivity(actionType, details) {
+            const activity = {
+                timestamp: new Date(),
+                employee: currentEmployee,
+                employeeId: currentEmployeeId,
+                actionType: actionType,
+                details: details
+            };
+            auditLog.unshift(activity); // Add to the beginning
+            saveToStorage();
+        }
+
+        function showAuditLogModal() {
+            if (!currentEmployeePermissions.canViewAuditLog) {
+                showNotification('error', 'صلاحيات غير كافية', 'ليس لديك صلاحية لعرض سجل الأنشطة.');
+                return;
+            }
+            document.getElementById('auditLogModal').classList.remove('hidden');
+            renderAuditLog();
+        }
+
+        function closeAuditLogModal() {
+            document.getElementById('auditLogModal').classList.add('hidden');
+            document.getElementById('auditLogSearchInput').value = '';
+        }
+
+        function renderAuditLog(filteredLog = null) {
+            const tableBody = document.getElementById('auditLogTableBody');
+            tableBody.innerHTML = '';
+
+            const logToRender = filteredLog || auditLog;
+
+            if (logToRender.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500"><i class="fas fa-clipboard-list text-4xl mb-4"></i><p>لا توجد أنشطة مسجلة حتى الآن.</p></td></tr>';
+                return;
+            }
+
+            logToRender.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
+                
+                const date = new Date(entry.timestamp);
+                const dateTimeStr = date.toLocaleString('ar-SA', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+                
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-4 text-center font-bold">${index + 1}</td>
+                    <td class="border border-gray-300 p-4 text-center text-sm">${dateTimeStr}</td>
+                    <td class="border border-gray-300 p-4 text-sm font-semibold">${entry.employee}</td>
+                    <td class="border border-gray-300 p-4 text-center font-medium">${entry.actionType}</td>
+                    <td class="border border-gray-300 p-4 text-sm">${entry.details}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function filterAuditLog() {
+            const searchTerm = document.getElementById('auditLogSearchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                renderAuditLog();
+                return;
+            }
+
+            const filtered = auditLog.filter(entry => {
+                return entry.actionType.toLowerCase().includes(searchTerm) ||
+                       entry.details.toLowerCase().includes(searchTerm) ||
+                       entry.employee.toLowerCase().includes(searchTerm);
+            });
+            
+            renderAuditLog(filtered);
+        }
+        // --- End Audit Log Functions ---
+
+
+        // Storage functions
+        function saveToStorage() {
+            try {
+                localStorage.setItem('besonusWarehouseInventory', JSON.stringify(inventory));
+                localStorage.setItem('besonusWarehouseWithdrawals', JSON.stringify(allWithdrawalHistory)); // Save all history
+                localStorage.setItem('besonusWarehouseUsers', JSON.stringify(users)); // Save users data
+                localStorage.setItem('besonusWarehouseAuditLog', JSON.stringify(auditLog)); // Save audit log
+            } catch(e) {
+                console.error('Error saving to storage:', e);
+                showNotification('error', 'خطأ في الحفظ', 'حدث خطأ أثناء حفظ البيانات. قد لا يتم حفظ التغييرات.');
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const savedInventory = localStorage.getItem('besonusWarehouseInventory');
+                const savedAllWithdrawals = localStorage.getItem('besonusWarehouseWithdrawals'); // Load all history
+                const savedUsers = localStorage.getItem('besonusWarehouseUsers');
+                const savedAuditLog = localStorage.getItem('besonusWarehouseAuditLog');
+                
+                if (savedInventory) {
+                    inventory = JSON.parse(savedInventory);
+                }
+                
+                if (savedAllWithdrawals) {
+                    allWithdrawalHistory = JSON.parse(savedAllWithdrawals);
+                    // Ensure date objects are re-instantiated if stored as strings
+                    allWithdrawalHistory.forEach(w => {
+                        if (typeof w.date === 'string') {
+                            w.date = new Date(w.date);
+                        }
+                    });
+                }
+
+                if (savedUsers) {
+                    // Merge loaded users with default ones to ensure new default users are added
+                    const loadedUsers = JSON.parse(savedUsers);
+                    users = { ...users, ...loadedUsers };
+                }
+
+                if (savedAuditLog) {
+                    auditLog = JSON.parse(savedAuditLog);
+                    auditLog.forEach(entry => {
+                        if (typeof entry.timestamp === 'string') {
+                            entry.timestamp = new Date(entry.timestamp);
+                        }
+                    });
+                }
+            } catch(e) {
+                console.error('Error loading from storage:', e);
+                showNotification('error', 'خطأ في التحميل', 'حدث خطأ أثناء تحميل البيانات. قد تكون البيانات قديمة.');
+            }
+        }
+
+        // Event listeners for modals
+        document.getElementById('addProductModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeAddProductModal(); }
+        });
+        document.getElementById('editProductModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeEditProductModal(); }
+        });
+        document.getElementById('confirmationModal').addEventListener('click', function(e) {
+            if (e.target === this) { hideConfirmationModal(); }
+        });
+        document.getElementById('withdrawalConfirmationModal').addEventListener('click', function(e) {
+            if (e.target === this) { hideWithdrawalConfirmationModal(); }
+        });
+        document.getElementById('invoiceModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeInvoiceModal(); }
+        });
+        document.getElementById('allWithdrawalsModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeAllWithdrawalsModal(); }
+        });
+        document.getElementById('userManagementModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeUserManagementModal(); }
+        });
+        document.getElementById('addUserModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeAddUserModal(); }
+        });
+        document.getElementById('auditLogModal').addEventListener('click', function(e) {
+            if (e.target === this) { closeAuditLogModal(); }
+        });
+
+
+        // Enhanced keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAddProductModal();
+                closeEditProductModal();
+                hideConfirmationModal();
+                hideWithdrawalConfirmationModal();
+                closeInvoiceModal();
+                closeAllWithdrawalsModal(); 
+                closeUserManagementModal();
+                closeAddUserModal(); // Added
+                closeAuditLogModal();
+            }
+            
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                showAddProductModal();
+            }
+            
+            if (e.ctrlKey && e.key === 'i') {
+                e.preventDefault();
+                generateInvoice(); 
+            }
+
+            if (e.ctrlKey && e.key === 'a') { 
+                e.preventDefault();
+                showAllWithdrawalsModal();
+            }
+
+            if (e.ctrlKey && e.key === 'u') { // Shortcut for user management
+                e.preventDefault();
+                showUserManagementModal();
+            }
+
+            if (e.ctrlKey && e.key === 'l') { // Shortcut for audit log
+                e.preventDefault();
+                showAuditLogModal();
+            }
+            
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // Auto-save every 20 seconds
+        setInterval(saveToStorage, 20000);
+        window.addEventListener('beforeunload', saveToStorage);
+
+        // Initialize filters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up filter event listeners
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const category = this.textContent.trim();
+                    const categoryMap = {
+                        'الكل': 'all',
+                        'معلابات': 'electronics',
+                        'منتجات جافة': 'clothing',
+                        'اللحوم': 'food',
+                        'أدوات النظافة': 'tools',
+                        'مكتبية': 'office',
+                        'منتجات جاهزة للفرع': 'ready'
+                    };
+                    filterByCategory(categoryMap[category] || 'all', this);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
